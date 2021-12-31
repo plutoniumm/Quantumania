@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/plutoniumm/Quantumania#readme",
   "dependencies": {
-    "three": "^0.135.0"
+    "three": "^0.136.0"
   },
   "devDependencies": {
     "express": "^4.17.1",
