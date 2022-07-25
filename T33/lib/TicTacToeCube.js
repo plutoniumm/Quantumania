@@ -1,7 +1,8 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.121.1/build/three.module.js';
 
 export default class TicTacToeCube {
-  constructor () {
+  constructor() {
+    this.dimensions = 3;
     this.board = new THREE.Group();
     this.spheres = new THREE.Group();
     this.asterisks = new THREE.Group();
@@ -17,7 +18,9 @@ export default class TicTacToeCube {
 
     this.currentPlayer = "sphere";
     //TODO: expand this board to size 81 from 27
-    this.boardCopy = [
+
+    //if this.dimensions === 2, then this.boardCopy is 27x27; if this.dimensions === 3, then this.boardCopy is 27x27x27;
+    this.boardCopy = this.dimensions===3 && [
       [
         // z = 24
         [ "1", "2", "3" ],
@@ -40,12 +43,13 @@ export default class TicTacToeCube {
 
     this._createBoard();
   }
-
+  // A win condition for each diagonal
   checkWinConditions () {
     // NOTE: check rows and columns
     for ( let i = 0;i < 3;i++ ) {
-      for ( let j = 0;j < 3;j++ ) {
-        if ( this._checkXRow( i, j ) ) {
+      for (let j = 0; j < 3; j++) {
+        // _checkXRow
+        if (this._checkDiagonal( i,j,0,i,j,1,i,j,2 ) ) {
           this._addStrike(
             64,
             2,
@@ -58,20 +62,8 @@ export default class TicTacToeCube {
             0
           );
         }
-        if ( this._checkZRow( i, j ) ) {
-          this._addStrike(
-            2,
-            2,
-            64,
-            this._getXOffset( i ),
-            this._getYOffset( j ),
-            0,
-            0,
-            0,
-            0
-          );
-        }
-        if ( this._checkYRow( i, j ) ) {
+        // _checkYRow
+        if (this._checkDiagonal( i,0,j,i,1,j,i,2,j ) ) {
           this._addStrike(
             2,
             64,
@@ -84,179 +76,103 @@ export default class TicTacToeCube {
             0
           );
         }
+        // _checkZRow
+        if (this._checkDiagonal( 0,i,j,1,i,j,2,i,j ) ) {
+          this._addStrike(
+            2,
+            2,
+            64,
+            this._getXOffset( i ),
+            this._getYOffset( j ),
+            0,
+            0,
+            0,
+            0
+          );
+        }
       }
     }
-
     // NOTE: check 2-axis diagonals
     const rad = Math.PI / 4;
-    for ( let i = 0;i < 3;i++ ) {
-      if ( this._checkDiagonalXYPos( i ) ) {
+    for (let i = 0; i < 3; i++) {
+      // _checkDiagonalXYPos
+      if (this._checkDiagonal( i,2,0,i,1,1,i,0,2 ) ) {
         this._addStrike( 84, 2, 2, 0, 0, this._getZOffset( i ), 0, 0, rad );
       }
-      if ( this._checkDiagonalXYNeg( i ) ) {
+      // _checkDiagonalXYNeg
+      if (this._checkDiagonal( i,0,0,i,1,1,i,2,2 ) ) {
         this._addStrike( 84, 2, 2, 0, 0, this._getZOffset( i ), 0, 0, -1 * rad );
       }
-      if ( this._checkDiagonalXZPos( i ) ) {
+      // _checkDiagonalXZPos
+      if (this._checkDiagonal( 2,i,0,1,i,1,0,i,2 ) ) {
         this._addStrike( 2, 2, 84, 0, this._getYOffset( i ), 0, 0, rad, 0 );
       }
-      if ( this._checkDiagonalXZNeg( i ) ) {
+      // _checkDiagonalXZNeg
+      if (this._checkDiagonal( 0,i,0,1,i,1,2,i,2 ) ) {
         this._addStrike( 2, 2, 84, 0, this._getYOffset( i ), 0, 0, -1 * rad, 0 );
       }
-      if ( this._checkDiagonalYZPos( i ) ) {
+      // _checkDiagonalYZPos
+      if (this._checkDiagonal( 0,0,i,1,1,i,2,2,i ) ) {
         this._addStrike( 2, 84, 2, this._getXOffset( i ), 0, 0, rad, 0, 0 );
       }
-      if ( this._checkDiagonalYZNeg( i ) ) {
+      // _checkDiagonalYZNeg
+      if (this._checkDiagonal( 2,0,i,1,1,i,0,2,i ) ) {
         this._addStrike( 2, 84, 2, this._getXOffset( i ), 0, 0, -1 * rad, 0, 0 );
       }
     }
-
     // NOTE: check xyz diagonals
     const rot1 = Math.PI / 4;
     const rot2 = Math.PI / 5;
-    if ( this._fromTopLeftFrontToBottomRightBack() ) {
+    // _fromTopLeftFrontToBottomRightBack
+    if ( this._checkDiagonal(0,0,0,1,1,1,2,2,2) ) {
       this._addStrike( 2, 2, 100, 0, 0, 0, -1 * rot1, -1 * rot2, 0 );
     }
-    if ( this._fromTopRightFrontToBottomLeftBack() ) {
+    // _fromTopRightFrontToBottomLeftBack
+    if (this._checkDiagonal(0,0,2,1,1,1,2,2,0) ) {
       this._addStrike( 2, 2, 100, 0, 0, 0, -1 * rot1, 1 * rot2, 0 );
     }
-    if ( this._fromTopLeftBackToBottomRightFront() ) {
+    // _fromTopLeftBackToBottomRightFront
+    if (this._checkDiagonal(2,0,0,1,1,1,0,2,2) ) {
       this._addStrike( 2, 2, 100, 0, 0, 0, 1 * rot1, 1 * rot2, 0 );
     }
-    if ( this._fromTopRightBackToBottomLeftFront() ) {
+    // _fromTopRightBackToBottomLeftFront
+    if (this._checkDiagonal(2,0,2,1,1,1,0,2,0) ) {
       this._addStrike( 2, 2, 100, 0, 0, 0, 1 * rot1, -1 * rot2, 0 );
     }
   }
-
-  _fromTopRightBackToBottomLeftFront () {
+  // Generalises the check for a diagonal -- v*(v-3)/2
+  _checkDiagonal(x1, y1, z1, x2, y2, z2, x3, y3, z3) {
     return (
-      this.boardCopy[ 2 ][ 0 ][ 2 ] === this.boardCopy[ 1 ][ 1 ][ 1 ] &&
-      this.boardCopy[ 1 ][ 1 ][ 1 ] === this.boardCopy[ 0 ][ 2 ][ 0 ]
+      this.boardCopy[x1][y1][z1] === this.boardCopy[x2][y2][z2] &&
+      this.boardCopy[x1][y1][z1] === this.boardCopy[x3][y3][z3]
     );
   }
 
-  _fromTopLeftBackToBottomRightFront () {
-    return (
-      this.boardCopy[ 2 ][ 0 ][ 0 ] === this.boardCopy[ 1 ][ 1 ][ 1 ] &&
-      this.boardCopy[ 1 ][ 1 ][ 1 ] === this.boardCopy[ 0 ][ 2 ][ 2 ]
-    );
-  }
-
-  _fromTopRightFrontToBottomLeftBack () {
-    return (
-      this.boardCopy[ 0 ][ 0 ][ 2 ] === this.boardCopy[ 1 ][ 1 ][ 1 ] &&
-      this.boardCopy[ 1 ][ 1 ][ 1 ] === this.boardCopy[ 2 ][ 2 ][ 0 ]
-    );
-  }
-
-  _fromTopLeftFrontToBottomRightBack () {
-    return (
-      this.boardCopy[ 0 ][ 0 ][ 0 ] === this.boardCopy[ 1 ][ 1 ][ 1 ] &&
-      this.boardCopy[ 1 ][ 1 ][ 1 ] === this.boardCopy[ 2 ][ 2 ][ 2 ]
-    );
-  }
-
-  _checkDiagonalYZPos ( i ) {
-    return (
-      this.boardCopy[ 0 ][ 0 ][ i ] === this.boardCopy[ 1 ][ 1 ][ i ] &&
-      this.boardCopy[ 1 ][ 1 ][ i ] === this.boardCopy[ 2 ][ 2 ][ i ]
-    );
-  }
-
-  _checkDiagonalYZNeg ( i ) {
-    return (
-      this.boardCopy[ 2 ][ 0 ][ i ] === this.boardCopy[ 1 ][ 1 ][ i ] &&
-      this.boardCopy[ 1 ][ 1 ][ i ] === this.boardCopy[ 0 ][ 2 ][ i ]
-    );
-  }
-
-  _checkDiagonalXZPos ( i ) {
-    return (
-      this.boardCopy[ 2 ][ i ][ 0 ] === this.boardCopy[ 1 ][ i ][ 1 ] &&
-      this.boardCopy[ 1 ][ i ][ 1 ] === this.boardCopy[ 0 ][ i ][ 2 ]
-    );
-  }
-
-  _checkDiagonalXZNeg ( i ) {
-    return (
-      this.boardCopy[ 0 ][ i ][ 0 ] === this.boardCopy[ 1 ][ i ][ 1 ] &&
-      this.boardCopy[ 1 ][ i ][ 1 ] === this.boardCopy[ 2 ][ i ][ 2 ]
-    );
-  }
-
-  _checkDiagonalXZPos ( i ) {
-    return (
-      this.boardCopy[ 2 ][ i ][ 0 ] === this.boardCopy[ 1 ][ i ][ 1 ] &&
-      this.boardCopy[ 1 ][ i ][ 1 ] === this.boardCopy[ 0 ][ i ][ 2 ]
-    );
-  }
-
-  _checkDiagonalXZNeg ( i ) {
-    return (
-      this.boardCopy[ 0 ][ i ][ 0 ] === this.boardCopy[ 1 ][ i ][ 1 ] &&
-      this.boardCopy[ 1 ][ i ][ 1 ] === this.boardCopy[ 2 ][ i ][ 2 ]
-    );
-  }
-
-  _checkDiagonalXYPos ( i ) {
-    return (
-      this.boardCopy[ i ][ 2 ][ 0 ] === this.boardCopy[ i ][ 1 ][ 1 ] &&
-      this.boardCopy[ i ][ 1 ][ 1 ] === this.boardCopy[ i ][ 0 ][ 2 ]
-    );
-  }
-
-  _checkDiagonalXYNeg ( i ) {
-    return (
-      this.boardCopy[ i ][ 0 ][ 0 ] === this.boardCopy[ i ][ 1 ][ 1 ] &&
-      this.boardCopy[ i ][ 1 ][ 1 ] === this.boardCopy[ i ][ 2 ][ 2 ]
-    );
-  }
-
-  _addStrike (
-    x,
-    y,
-    z,
-    xOffset,
-    yOffset,
-    zOffset,
-    xRotation,
-    yRotation,
-    zRotation
-  ) {
-    const strikeGeometry = new THREE.BoxGeometry( x, y, z );
-    const strikeMaterial = new THREE.MeshNormalMaterial();
-    const strike = new THREE.Mesh( strikeGeometry, strikeMaterial );
-    strike.position.x = xOffset;
-    strike.position.y = yOffset;
-    strike.position.z = zOffset;
-    strike.rotation.x = xRotation;
-    strike.rotation.y = yRotation;
-    strike.rotation.z = zRotation;
-    strike.scale.x = 0;
-    strike.scale.y = 0;
-    strike.scale.z = 0;
-    this.winStrikes.add( strike );
-  }
-
-  _checkXRow ( i, j ) {
-    return (
-      this.boardCopy[ i ][ j ][ 0 ] === this.boardCopy[ i ][ j ][ 1 ] &&
-      this.boardCopy[ i ][ j ][ 1 ] === this.boardCopy[ i ][ j ][ 2 ]
-    );
-  }
-
-  _checkYRow ( i, j ) {
-    return (
-      this.boardCopy[ i ][ 0 ][ j ] === this.boardCopy[ i ][ 1 ][ j ] &&
-      this.boardCopy[ i ][ 1 ][ j ] === this.boardCopy[ i ][ 2 ][ j ]
-    );
-  }
-
-  _checkZRow ( i, j ) {
-    return (
-      this.boardCopy[ 0 ][ j ][ i ] === this.boardCopy[ 1 ][ j ][ i ] &&
-      this.boardCopy[ 1 ][ j ][ i ] === this.boardCopy[ 2 ][ j ][ i ]
-    );
-  }
+  _addStrike(
+      x,
+      y,
+      z,
+      xOffset,
+      yOffset,
+      zOffset,
+      xRotation,
+      yRotation,
+      zRotation
+    ) {
+      const strikeGeometry = new THREE.BoxGeometry( x, y, z );
+      const strikeMaterial = new THREE.MeshNormalMaterial();
+      const strike = new THREE.Mesh( strikeGeometry, strikeMaterial );
+      strike.position.x = xOffset;
+      strike.position.y = yOffset;
+      strike.position.z = zOffset;
+      strike.rotation.x = xRotation;
+      strike.rotation.y = yRotation;
+      strike.rotation.z = zRotation;
+      strike.scale.x = 0;
+      strike.scale.y = 0;
+      strike.scale.z = 0;
+      this.winStrikes.add( strike );
+  } // Should I add a return statement here?
 
   //TODO:Expand from 27 to 81 | Partitions for size=3 will be almost transparent; those separating them will be visible(thicc)
   _createBoard () {
